@@ -1,0 +1,11 @@
+<library path="libwolf_hw_sim">
+
+  <class name="wolf_gazebo_interface/WolfRobotHwSim"
+         type="wolf_gazebo_interface::WolfRobotHwSim"
+    	 base_class_type="gazebo_ros_control::RobotHWSim">
+    <description>
+      WoLF simulation interface for Gazebo
+    </description>
+  </class>
+
+</library>
