@@ -166,9 +166,9 @@ namespace wolf_gazebo_interface
     base_ang_acc_[0] = (base_ang_vel_[0] - base_ang_vel_prev_[0])/period.toSec();
     base_ang_acc_[1] = (base_ang_vel_[1] - base_ang_vel_prev_[1])/period.toSec();
     base_ang_acc_[2] = (base_ang_vel_[2] - base_ang_vel_prev_[2])/period.toSec();
-    base_ang_vel_prev_[0] = base_lin_vel_[0];
-    base_ang_vel_prev_[1] = base_lin_vel_[1];
-    base_ang_vel_prev_[2] = base_lin_vel_[2];
+    base_ang_vel_prev_[0] = base_ang_vel_[0];
+    base_ang_vel_prev_[1] = base_ang_vel_[1];
+    base_ang_vel_prev_[2] = base_ang_vel_[2];
 
     ignition::math::Pose3d gzPose = sim_model_->WorldPose();
     base_lin_pos_[0] = gzPose.Pos().X();
@@ -197,32 +197,32 @@ namespace wolf_gazebo_interface
 
       imu_data_.frame_id = gt_data_.frame_id;
 
+      // Orientation
       quaterniond_tmp_.w() = gzPose.Rot().W();
       quaterniond_tmp_.x() = gzPose.Rot().X();
       quaterniond_tmp_.y() = gzPose.Rot().Y();
       quaterniond_tmp_.z() = gzPose.Rot().Z();
       quaterniond_tmp_.normalize();
       world_R_base_ = quaterniond_tmp_.toRotationMatrix();
-
       imu_quat.W() = gzPose.Rot().W();
       imu_quat.X() = gzPose.Rot().X();
       imu_quat.Y() = gzPose.Rot().Y();
       imu_quat.Z() = gzPose.Rot().Z();
 
+      // Angular velocities
       vector3d_tmp_ << static_cast<double>(gzAngularVel.X()),
                        static_cast<double>(gzAngularVel.Y()),
                        static_cast<double>(gzAngularVel.Z());
       vector3d_tmp_ = world_R_base_.transpose() * vector3d_tmp_; // base_angular_vel = base_R_world * world_angular_vel
-
       imu_ang_vel.X() = vector3d_tmp_(0);
       imu_ang_vel.Y() = vector3d_tmp_(1);
       imu_ang_vel.Z() = vector3d_tmp_(2);
 
-      vector3d_tmp_ << static_cast<double>(base_ang_acc_[0]),
-                       static_cast<double>(base_ang_acc_[1]),
-                       static_cast<double>(base_ang_acc_[2]);
-      vector3d_tmp_ = world_R_base_.transpose() * vector3d_tmp_; // base_angular_acc = base_R_world * world_angular_acc
-
+      // Linear accelerations
+      vector3d_tmp_ << static_cast<double>(base_lin_acc_[0]),
+                       static_cast<double>(base_lin_acc_[1]),
+                       static_cast<double>(base_lin_acc_[2]);
+      vector3d_tmp_ = world_R_base_.transpose() * vector3d_tmp_; // base_linear_acc = base_R_world * world_linear_acc
       imu_lin_acc.X() = vector3d_tmp_(0);
       imu_lin_acc.Y() = vector3d_tmp_(1);
       imu_lin_acc.Z() = vector3d_tmp_(2);
