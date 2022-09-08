@@ -186,66 +186,99 @@ namespace wolf_gazebo_interface
     base_orientation_[3] = sim_model_->WorldPose().Rot().Z();
 
     // IMU data:
-    ignition::math::Quaterniond imu_quat(1, 0, 0, 0);
-    ignition::math::Vector3d imu_ang_vel(0, 0, 0);
-    ignition::math::Vector3d imu_lin_acc(0, 0, 0);
-
     // In this case we are using the IMU sensor which has angular velocities and accelerations defined wrt the trunk/base
     if(this->imu_sensor_ != nullptr)
     {
-      imu_quat    = imu_sensor_->Orientation();
-      imu_ang_vel = imu_sensor_->AngularVelocity();
-      imu_lin_acc = imu_sensor_->LinearAcceleration();
+      imu_orientation_[0] = imu_sensor_->Orientation().W();
+      imu_orientation_[1] = imu_sensor_->Orientation().X();
+      imu_orientation_[2] = imu_sensor_->Orientation().Y();
+      imu_orientation_[3] = imu_sensor_->Orientation().Z();
+
+      imu_ang_vel_[0] = imu_sensor_->AngularVelocity().X();
+      imu_ang_vel_[1] = imu_sensor_->AngularVelocity().Y();
+      imu_ang_vel_[2] = imu_sensor_->AngularVelocity().Z();
+
+      imu_lin_acc_[0] = imu_sensor_->LinearAcceleration().X();
+      imu_lin_acc_[1] = imu_sensor_->LinearAcceleration().Y();
+      imu_lin_acc_[2] = imu_sensor_->LinearAcceleration().Z();
     }
     // In this case we need to transform the angular velocities and accelerations from world measurements (Gazebo) to trunk/base (IMU)
     else
     {
-
       imu_data_.frame_id = gt_data_.frame_id;
 
+      // Calculate base_R_world_
+      quaterniond_tmp_.W() = base_orientation_[0];
+      quaterniond_tmp_.X() = base_orientation_[1];
+      quaterniond_tmp_.Y() = base_orientation_[2];
+      quaterniond_tmp_.Z() = base_orientation_[3];
+      base_R_world_ = quaterniond_tmp_; // world_R_base
+      base_R_world_.Transpose();
+
       // Orientation
-      quaterniond_tmp_.w() = gzPose.Rot().W();
-      quaterniond_tmp_.x() = gzPose.Rot().X();
-      quaterniond_tmp_.y() = gzPose.Rot().Y();
-      quaterniond_tmp_.z() = gzPose.Rot().Z();
-      quaterniond_tmp_.normalize();
-      world_R_base_ = quaterniond_tmp_.toRotationMatrix();
-      imu_quat.W() = gzPose.Rot().W();
-      imu_quat.X() = gzPose.Rot().X();
-      imu_quat.Y() = gzPose.Rot().Y();
-      imu_quat.Z() = gzPose.Rot().Z();
+      imu_orientation_[0] = base_orientation_[0];
+      imu_orientation_[1] = base_orientation_[1];
+      imu_orientation_[2] = base_orientation_[2];
+      imu_orientation_[3] = base_orientation_[3];
 
       // Angular velocities
-      vector3d_tmp_ << static_cast<double>(gzAngularVel.X()),
-                       static_cast<double>(gzAngularVel.Y()),
-                       static_cast<double>(gzAngularVel.Z());
-      vector3d_tmp_ = world_R_base_.transpose() * vector3d_tmp_; // base_angular_vel = base_R_world * world_angular_vel
-      imu_ang_vel.X() = vector3d_tmp_(0);
-      imu_ang_vel.Y() = vector3d_tmp_(1);
-      imu_ang_vel.Z() = vector3d_tmp_(2);
+      vector3d_tmp_.X() = static_cast<double>(base_ang_vel_[0]);
+      vector3d_tmp_.Y() = static_cast<double>(base_ang_vel_[1]);
+      vector3d_tmp_.Z() = static_cast<double>(base_ang_vel_[2]);
+      vector3d_tmp2_ = base_R_world_ * vector3d_tmp_; // base_angular_vel = base_R_world * world_angular_vel
+      imu_ang_vel_[0] = vector3d_tmp2_.X();
+      imu_ang_vel_[1] = vector3d_tmp2_.Y();
+      imu_ang_vel_[2] = vector3d_tmp2_.Z();
 
       // Linear accelerations
-      vector3d_tmp_ << static_cast<double>(base_lin_acc_[0]),
-                       static_cast<double>(base_lin_acc_[1]),
-                       static_cast<double>(base_lin_acc_[2]);
-      vector3d_tmp_ = world_R_base_.transpose() * vector3d_tmp_; // base_linear_acc = base_R_world * world_linear_acc
-      imu_lin_acc.X() = vector3d_tmp_(0);
-      imu_lin_acc.Y() = vector3d_tmp_(1);
-      imu_lin_acc.Z() = vector3d_tmp_(2);
+      vector3d_tmp_.X() = static_cast<double>(base_lin_acc_[0]);
+      vector3d_tmp_.Y() = static_cast<double>(base_lin_acc_[1]);
+      vector3d_tmp_.Z() = static_cast<double>(base_lin_acc_[2]);
+      vector3d_tmp2_ = base_R_world_ * vector3d_tmp_; // base_linear_acc = base_R_world * world_linear_acc
+      imu_lin_acc_[0] = vector3d_tmp2_.X();
+      imu_lin_acc_[1] = vector3d_tmp2_.Y();
+      imu_lin_acc_[2] = vector3d_tmp2_.Z();
     }
 
-    imu_orientation_[0] = imu_quat.W();
-    imu_orientation_[1] = imu_quat.X();
-    imu_orientation_[2] = imu_quat.Y();
-    imu_orientation_[3] = imu_quat.Z();
+    // Contact sensors data:
+    if(contact_sensors_.size() != 0)
+    {
+      // Fill the contact sensors reading
+      for (unsigned int i = 0; i < contact_sensor_names_.size(); i++)
+      {
+        const gazebo::msgs::Contacts& contacts = contact_sensors_[contact_sensor_names_[i]]->Contacts();
 
-    imu_ang_vel_[0] = imu_ang_vel.X();
-    imu_ang_vel_[1] = imu_ang_vel.Y();
-    imu_ang_vel_[2] = imu_ang_vel.Z();
+        if (contacts.contact_size()>=1)
+        {
+          link_pose_ = sim_model_->GetLink(contact_names_[i])->WorldPose();
+          local_force_.X() = contacts.contact(0).wrench(0).body_1_wrench().force().x();
+          local_force_.Y() = contacts.contact(0).wrench(0).body_1_wrench().force().y();
+          local_force_.Z() = contacts.contact(0).wrench(0).body_1_wrench().force().z();
+          world_force_     = link_pose_.Rot().RotateVector(local_force_);
 
-    imu_lin_acc_[0] = imu_lin_acc.X();
-    imu_lin_acc_[1] = imu_lin_acc.Y();
-    imu_lin_acc_[2] = imu_lin_acc.Z();
+          contact_[i] = true; // FIXME this seems to be always true!
+          // These forces are now in the world frame
+          force_[i][0] = world_force_.X();
+          force_[i][1] = world_force_.Y();
+          force_[i][2] = world_force_.Z();
+          // While the normal is already expressed in the world frame
+          normal_[i][0]  = contacts.contact(0).normal(0).x();
+          normal_[i][1]  = contacts.contact(0).normal(0).y();
+          normal_[i][2]  = contacts.contact(0).normal(0).z();
+        }
+        else
+        {
+          contact_[i]    = false;
+          force_[i][0]   = 0.0;
+          force_[i][1]   = 0.0;
+          force_[i][2]   = 0.0;
+          normal_[i][0]  = 0.0;
+          normal_[i][1]  = 0.0;
+          normal_[i][2]  = 0.0;
+        }
+      }
+    }
+
   }
 
 

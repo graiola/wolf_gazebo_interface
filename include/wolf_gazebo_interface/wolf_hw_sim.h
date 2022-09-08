@@ -47,10 +47,6 @@
 // HW interface
 #include <wolf_hardware_interface/wolf_robot_hw.h>
 
-// Eigen
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Dense>
-
 namespace wolf_gazebo_interface
 {
 
@@ -103,18 +99,23 @@ public:
 private:
 
   std::shared_ptr<gazebo::sensors::ImuSensor> imu_sensor_;
-  std::vector<std::shared_ptr<gazebo::sensors::ContactSensor> > contact_sensors_;
+  std::map<std::string,std::shared_ptr<gazebo::sensors::ContactSensor> > contact_sensors_;
+  std::vector<std::string> contact_names_;
 
   std::vector<gazebo::physics::JointPtr> sim_joints_;
   gazebo::physics::ModelPtr sim_model_;
-  ignition::math::Pose3d inital_pose_;
 
   ros::ServiceServer ss_;
   bool freeze_base_sim_;
 
-  Eigen::Quaterniond quaterniond_tmp_;
-  Eigen::Matrix3d world_R_base_;
-  Eigen::Vector3d vector3d_tmp_;
+  ignition::math::Pose3d inital_pose_;
+  ignition::math::Matrix3d base_R_world_;
+  ignition::math::Vector3d vector3d_tmp_;
+  ignition::math::Vector3d vector3d_tmp2_;
+  ignition::math::Quaterniond quaterniond_tmp_;
+  ignition::math::Pose3d link_pose_;
+  ignition::math::Vector3d world_force_;
+  ignition::math::Vector3d local_force_;
 };
 
 }
