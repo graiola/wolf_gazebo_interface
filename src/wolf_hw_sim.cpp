@@ -20,7 +20,6 @@
 #include <wolf_gazebo_interface/wolf_hw_sim.h>
 
 #include <gazebo/sensors/SensorManager.hh>
-#include <ignition/math/Vector3.hh>
 
 PLUGINLIB_EXPORT_CLASS(wolf_gazebo_interface::WolfRobotHwSim, gazebo_ros_control::RobotHWSim)
 
@@ -105,6 +104,17 @@ namespace wolf_gazebo_interface
     WolfRobotHwInterface::initializeGroundTruthInterface(loadBaseLinkNameFromSRDF());
     registerInterface(&ground_truth_interface_);
 
+    // Hardware interfaces: Contact sensors
+    contact_names_ = loadContactNamesFromSRDF();
+    WolfRobotHwInterface::initializeContactSensorsInterface(contact_names_);
+    for(unsigned int i=0; i < contact_sensor_names_.size(); i++)
+    {
+      contact_sensors_[contact_sensor_names_[i]] = std::dynamic_pointer_cast<gazebo::sensors::ContactSensor>(sensor_manager->GetSensor(contact_sensor_names_[i]));
+      if(!this->contact_sensors_[contact_sensor_names_[i]])
+        ROS_WARN_STREAM_NAMED(CLASS_NAME,"Could not find "<< contact_sensor_names_[i] <<".");
+    }
+    registerInterface(&contact_sensor_interface_);
+
     // Freeze base service
     ss_ = model_nh.advertiseService("freeze_base", &WolfRobotHwSim::freezeBase, this);
     freeze_base_sim_ = false;
@@ -138,18 +148,16 @@ namespace wolf_gazebo_interface
         joint_position_[j] = sim_joints_[j]->Position(0);
 
       else
-        joint_position_[j] += angles::shortest_angular_distance(joint_position_[j],
-                                                                sim_joints_[j]->Position(0));
+        joint_position_[j] += angles::shortest_angular_distance(joint_position_[j], sim_joints_[j]->Position(0));
 
       joint_velocity_[j] = sim_joints_[j]->GetVelocity(0);
       joint_effort_[j] = sim_joints_[j]->GetForce(static_cast<unsigned int>(0));
     }
 
-    //Ground truth:
-    ignition::math::Vector3d  gzLinearVel = sim_model_->WorldLinearVel();
-    base_lin_vel_[0] = gzLinearVel.X();
-    base_lin_vel_[1] = gzLinearVel.Y();
-    base_lin_vel_[2] = gzLinearVel.Z();
+    // Ground truth data:
+    base_lin_vel_[0] = sim_model_->WorldLinearVel().X();
+    base_lin_vel_[1] = sim_model_->WorldLinearVel().Y();
+    base_lin_vel_[2] = sim_model_->WorldLinearVel().Z();
 
     base_lin_acc_[0] = (base_lin_vel_[0] - base_lin_vel_prev_[0])/period.toSec();
     base_lin_acc_[1] = (base_lin_vel_[1] - base_lin_vel_prev_[1])/period.toSec();
@@ -158,10 +166,9 @@ namespace wolf_gazebo_interface
     base_lin_vel_prev_[1] = base_lin_vel_[1];
     base_lin_vel_prev_[2] = base_lin_vel_[2];
 
-    ignition::math::Vector3d  gzAngularVel = sim_model_->WorldAngularVel();
-    base_ang_vel_[0] = gzAngularVel.X();
-    base_ang_vel_[1] = gzAngularVel.Y();
-    base_ang_vel_[2] = gzAngularVel.Z();
+    base_ang_vel_[0] = sim_model_->WorldAngularVel().X();
+    base_ang_vel_[1] = sim_model_->WorldAngularVel().Y();
+    base_ang_vel_[2] = sim_model_->WorldAngularVel().Z();
 
     base_ang_acc_[0] = (base_ang_vel_[0] - base_ang_vel_prev_[0])/period.toSec();
     base_ang_acc_[1] = (base_ang_vel_[1] - base_ang_vel_prev_[1])/period.toSec();
@@ -170,14 +177,13 @@ namespace wolf_gazebo_interface
     base_ang_vel_prev_[1] = base_ang_vel_[1];
     base_ang_vel_prev_[2] = base_ang_vel_[2];
 
-    ignition::math::Pose3d gzPose = sim_model_->WorldPose();
-    base_lin_pos_[0] = gzPose.Pos().X();
-    base_lin_pos_[1] = gzPose.Pos().Y();
-    base_lin_pos_[2] = gzPose.Pos().Z();
-    base_orientation_[0] = gzPose.Rot().W();
-    base_orientation_[1] = gzPose.Rot().X();
-    base_orientation_[2] = gzPose.Rot().Y();
-    base_orientation_[3] = gzPose.Rot().Z();
+    base_lin_pos_[0]     = sim_model_->WorldPose().Pos().X();
+    base_lin_pos_[1]     = sim_model_->WorldPose().Pos().Y();
+    base_lin_pos_[2]     = sim_model_->WorldPose().Pos().Z();
+    base_orientation_[0] = sim_model_->WorldPose().Rot().W();
+    base_orientation_[1] = sim_model_->WorldPose().Rot().X();
+    base_orientation_[2] = sim_model_->WorldPose().Rot().Y();
+    base_orientation_[3] = sim_model_->WorldPose().Rot().Z();
 
     // IMU data:
     ignition::math::Quaterniond imu_quat(1, 0, 0, 0);

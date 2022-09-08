@@ -27,12 +27,16 @@
 #include <std_srvs/Empty.h>
 #include <pluginlib/class_list_macros.h>
 
-// Gazebo includes
+// Gazebo and ignition includes
 #include <gazebo/common/common.hh>
 #include <gazebo/physics/physics.hh>
 #include <gazebo/gazebo.hh>
 #include <gazebo/sensors/ImuSensor.hh>
 #include <gazebo/sensors/ContactSensor.hh>
+#include <ignition/math/Vector3.hh>
+#include <ignition/math/Matrix3.hh>
+#include <ignition/math/Quaternion.hh>
+#include <ignition/math/Pose3.hh>
 
 // Gazebo ros control include
 #include <gazebo_ros_control/robot_hw_sim.h>
