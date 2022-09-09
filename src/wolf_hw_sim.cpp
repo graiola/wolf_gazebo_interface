@@ -29,10 +29,10 @@ namespace wolf_gazebo_interface
   using namespace hardware_interface;
 
   bool WolfRobotHwSim::initSim(const std::string& /*robot_namespace*/,
-                              ros::NodeHandle model_nh,
-                              gazebo::physics::ModelPtr parent_model,
-                              const urdf::Model *const /*urdf_model*/,
-                              std::vector<transmission_interface::TransmissionInfo> transmissions)
+                               ros::NodeHandle model_nh,
+                               gazebo::physics::ModelPtr parent_model,
+                               const urdf::Model *const /*urdf_model*/,
+                               std::vector<transmission_interface::TransmissionInfo> transmissions)
   {
 
     const auto& sensor_manager  = gazebo::sensors::SensorManager::Instance();
@@ -97,7 +97,7 @@ namespace wolf_gazebo_interface
     WolfRobotHwInterface::initializeImuInterface(loadImuLinkNameFromSRDF());
     imu_sensor_ = std::dynamic_pointer_cast<gazebo::sensors::ImuSensor>(sensor_manager->GetSensor(imu_data_.frame_id));
     if(!this->imu_sensor_)
-        ROS_WARN_NAMED(CLASS_NAME,"Could not find base IMU sensor in gazebo, using the ground truth to fill the IMU data instead.");
+      ROS_WARN_NAMED(CLASS_NAME,"Could not find base IMU sensor in gazebo, using the ground truth to fill the IMU data instead.");
     registerInterface(&imu_sensor_interface_);
 
     // Hardware interfaces: Ground Truth
@@ -240,7 +240,13 @@ namespace wolf_gazebo_interface
       imu_lin_acc_[2] = vector3d_tmp2_.Z();
     }
 
+
+    ignition::math::Pose3d pose, frame_pose;
+    ignition::math::Quaterniond rot, frame_rot;
+    ignition::math::Vector3d pos, frame_pos;
+
     // Contact sensors data:
+    //std::cout << "**********************" << std::endl;
     if(contact_sensors_.size() != 0)
     {
       // Fill the contact sensors reading
@@ -248,36 +254,115 @@ namespace wolf_gazebo_interface
       {
         const gazebo::msgs::Contacts& contacts = contact_sensors_[contact_sensor_names_[i]]->Contacts();
 
-        if (contacts.contact_size()>=1)
-        {
-          link_pose_ = sim_model_->GetLink(contact_names_[i])->WorldPose();
-          local_force_.X() = contacts.contact(0).wrench(0).body_1_wrench().force().x();
-          local_force_.Y() = contacts.contact(0).wrench(0).body_1_wrench().force().y();
-          local_force_.Z() = contacts.contact(0).wrench(0).body_1_wrench().force().z();
-          world_force_     = link_pose_.Rot().RotateVector(local_force_);
+        frame_pose = sim_model_->GetLink(contact_names_[i])->WorldPose();
+        frame_pos = frame_pose.Pos();
+        frame_rot = frame_pose.Rot();
 
-          contact_[i] = true; // FIXME this seems to be always true!
-          // These forces are now in the world frame
-          force_[i][0] = world_force_.X();
-          force_[i][1] = world_force_.Y();
-          force_[i][2] = world_force_.Z();
-          // While the normal is already expressed in the world frame
-          normal_[i][0]  = contacts.contact(0).normal(0).x();
-          normal_[i][1]  = contacts.contact(0).normal(0).y();
-          normal_[i][2]  = contacts.contact(0).normal(0).z();
+        // no specific frames specified, use identity pose, keeping
+        // relative frame at inertial origin
+        //frame_pos  = ignition::math::Vector3d(0, 0, 0);
+        //frame_rot  = ignition::math::Quaterniond(1, 0, 0, 0);  // gazebo u,x,y,z == identity
+        //frame_pose = ignition::math::Pose3d(frame_pos, frame_rot);
+
+        //std::cout <<"contacts.contact_size() " << contacts.contact_size() << std::endl;
+
+        if (contacts.contact_size()>0)
+        {
+
+          gazebo::msgs::Contact contact = contacts.contact(0);
+
+          //std::cout << contact.collision1() << std::endl;
+          //std::cout << contact.collision2() << std::endl;
+
+          //std::cout <<"contact.position_size() " << contact.position_size() << std::endl;
+
+          //std::cout << "  Position:"
+          //      << contact.position(0).x() << " "
+          //      << contact.position(0).y() << " "
+          //      << contact.position(0).z() << "\n";
+          //std::cout << "   Normal:"
+          //      << contact.normal(0).x() << " "
+          //      << contact.normal(0).y() << " "
+          //      << contact.normal(0).z() << "\n";
+          //std::cout << "   Force:"
+          //      << contact.wrench(0).body_1_wrench().force().x() << " "
+          //      << contact.wrench(0).body_1_wrench().force().y() << " "
+          //      << contact.wrench(0).body_1_wrench().force().z() << "\n";
+          //std::cout << "   Depth:" << contact.depth(0) << "\n";
+
+          // Get force, torque and rotate into user specified frame.
+          // frame_rot is identity if world is used (default for now)
+          ignition::math::Vector3d force = frame_rot.RotateVectorReverse(ignition::math::Vector3d(
+                                                                           contact.wrench(0).body_1_wrench().force().x(),
+                                                                           contact.wrench(0).body_1_wrench().force().y(),
+                                                                           contact.wrench(0).body_1_wrench().force().z()));
+          ignition::math::Vector3d torque = frame_rot.RotateVectorReverse(ignition::math::Vector3d(
+                                                                            contact.wrench(0).body_1_wrench().torque().x(),
+                                                                            contact.wrench(0).body_1_wrench().torque().y(),
+                                                                            contact.wrench(0).body_1_wrench().torque().z()));
+
+          // transform contact positions into relative frame
+          // set contact positions
+          ignition::math::Vector3d position = frame_rot.RotateVectorReverse(
+                ignition::math::Vector3d(contact.position(0).x(),
+                                         contact.position(0).y(),
+                                         contact.position(0).z()) - frame_pos);
+
+
+          // rotate normal into user specified frame.
+          // frame_rot is identity if world is used.
+          ignition::math::Vector3d normal = frame_rot.RotateVectorReverse(
+                ignition::math::Vector3d(contact.normal(0).x(),
+                                         contact.normal(0).y(),
+                                         contact.normal(0).z()));
+
+
+          //std::cout << "  Position:"
+          //      << contact.position(0).x() << " "
+          //      << contact.position(0).y() << " "
+          //      << contact.position(0).z() << "\n";
+          //std::cout << "   Normal:"
+          //      << normal.X() << " "
+          //      << normal.Y() << " "
+          //      << normal.Z() << "\n";
+          //std::cout << "   Force:"
+          //      << force.X() << " "
+          //      << force.Y() << " "
+          //      << force.Z() << "\n";
+          //std::cout << "   Depth:" << contact.depth(0) << "\n";
+
+
+          contact_[i]    = true;
+          force_[i][0]   = force.X();
+          force_[i][1]   = force.Y();
+          force_[i][2]   = force.Z();
+          torque_[i][0]  = torque.X();
+          torque_[i][1]  = torque.Y();
+          torque_[i][2]  = torque.Z();
+          normal_[i][0]  = normal.X();
+          normal_[i][1]  = normal.Y();
+          normal_[i][2]  = normal.Z();
         }
+
         else
         {
           contact_[i]    = false;
           force_[i][0]   = 0.0;
           force_[i][1]   = 0.0;
           force_[i][2]   = 0.0;
+          torque_[i][0]  = 0.0;
+          torque_[i][1]  = 0.0;
+          torque_[i][2]  = 0.0;
           normal_[i][0]  = 0.0;
           normal_[i][1]  = 0.0;
           normal_[i][2]  = 0.0;
         }
+
       }
+
     }
+
+
 
   }
 
