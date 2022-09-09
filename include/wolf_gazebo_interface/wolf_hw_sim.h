@@ -113,9 +113,6 @@ private:
   ignition::math::Vector3d vector3d_tmp_;
   ignition::math::Vector3d vector3d_tmp2_;
   ignition::math::Quaterniond quaterniond_tmp_;
-  ignition::math::Pose3d link_pose_;
-  ignition::math::Vector3d world_force_;
-  ignition::math::Vector3d local_force_;
 };
 
 }

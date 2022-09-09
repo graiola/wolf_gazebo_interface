@@ -250,18 +250,10 @@ namespace wolf_gazebo_interface
 
         if (contacts.contact_size()>=1)
         {
-          link_pose_ = sim_model_->GetLink(contact_names_[i])->WorldPose();
-          local_force_.X() = contacts.contact(0).wrench(0).body_1_wrench().force().x();
-          local_force_.Y() = contacts.contact(0).wrench(0).body_1_wrench().force().y();
-          local_force_.Z() = contacts.contact(0).wrench(0).body_1_wrench().force().z();
-          world_force_     = link_pose_.Rot().RotateVector(local_force_);
-
-          contact_[i] = true; // FIXME this seems to be always true!
-          // These forces are now in the world frame
-          force_[i][0] = world_force_.X();
-          force_[i][1] = world_force_.Y();
-          force_[i][2] = world_force_.Z();
-          // While the normal is already expressed in the world frame
+          contact_[i]    = true; // FIXME this seems to be always true!
+          force_[i][0]   = contacts.contact(0).wrench(0).body_1_wrench().force().x(); // Local frame force
+          force_[i][1]   = contacts.contact(0).wrench(0).body_1_wrench().force().y(); // Local frame force
+          force_[i][2]   = contacts.contact(0).wrench(0).body_1_wrench().force().z(); // Local frame force
           normal_[i][0]  = contacts.contact(0).normal(0).x();
           normal_[i][1]  = contacts.contact(0).normal(0).y();
           normal_[i][2]  = contacts.contact(0).normal(0).z();
