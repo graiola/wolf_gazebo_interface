@@ -160,9 +160,9 @@ namespace wolf_gazebo_interface
     base_lin_vel_[1] = sim_model_->WorldLinearVel().Y();
     base_lin_vel_[2] = sim_model_->WorldLinearVel().Z();
 
-    base_lin_acc_[0] = (base_lin_vel_[0] - base_lin_vel_prev_[0])/period.toSec();
-    base_lin_acc_[1] = (base_lin_vel_[1] - base_lin_vel_prev_[1])/period.toSec();
-    base_lin_acc_[2] = (base_lin_vel_[2] - base_lin_vel_prev_[2])/period.toSec();
+    base_lin_acc_[0] = sim_model_->WorldLinearAccel().X();//(base_lin_vel_[0] - base_lin_vel_prev_[0])/period.toSec();
+    base_lin_acc_[1] = sim_model_->WorldLinearAccel().Y();//(base_lin_vel_[1] - base_lin_vel_prev_[1])/period.toSec();
+    base_lin_acc_[2] = sim_model_->WorldLinearAccel().Z();//(base_lin_vel_[2] - base_lin_vel_prev_[2])/period.toSec();
     base_lin_vel_prev_[0] = base_lin_vel_[0];
     base_lin_vel_prev_[1] = base_lin_vel_[1];
     base_lin_vel_prev_[2] = base_lin_vel_[2];
@@ -171,9 +171,9 @@ namespace wolf_gazebo_interface
     base_ang_vel_[1] = sim_model_->WorldAngularVel().Y();
     base_ang_vel_[2] = sim_model_->WorldAngularVel().Z();
 
-    base_ang_acc_[0] = (base_ang_vel_[0] - base_ang_vel_prev_[0])/period.toSec();
-    base_ang_acc_[1] = (base_ang_vel_[1] - base_ang_vel_prev_[1])/period.toSec();
-    base_ang_acc_[2] = (base_ang_vel_[2] - base_ang_vel_prev_[2])/period.toSec();
+    base_ang_acc_[0] = sim_model_->WorldAngularAccel().X();//(base_ang_vel_[0] - base_ang_vel_prev_[0])/period.toSec();
+    base_ang_acc_[1] = sim_model_->WorldAngularAccel().Y();//(base_ang_vel_[1] - base_ang_vel_prev_[1])/period.toSec();
+    base_ang_acc_[2] = sim_model_->WorldAngularAccel().Z();//(base_ang_vel_[2] - base_ang_vel_prev_[2])/period.toSec();
     base_ang_vel_prev_[0] = base_ang_vel_[0];
     base_ang_vel_prev_[1] = base_ang_vel_[1];
     base_ang_vel_prev_[2] = base_ang_vel_[2];
