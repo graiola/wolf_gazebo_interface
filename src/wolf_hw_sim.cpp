@@ -75,7 +75,7 @@ namespace wolf_gazebo_interface
       }
       joint_names[j] = transmissions[j].joints_[0].name_;
     }
-    WolfRobotHwInterface::setNodeHandle(model_nh);
+    WolfRobotHwInterface::parseSRDF(model_nh.getNamespace());
     WolfRobotHwInterface::initializeJointsInterface(joint_names);
     registerInterface(&joint_state_interface_);
     registerInterface(&joint_effort_interface_);
