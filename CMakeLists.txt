@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.5)
 project(wolf_gazebo_interface)
 
 include(CheckCXXCompilerFlag)
@@ -18,46 +18,74 @@ else()
     message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 nor C++14 support. Please use a different C++ compiler.")
 endif()
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  gazebo_ros
-  controller_manager
-  wolf_hardware_interface
-  transmission_interface
-  pluginlib
-  gazebo_ros
-  gazebo_ros_control
-  realtime_tools
-  urdf)
+# ROS
+find_package(catkin QUIET)
+find_package(ament_cmake QUIET)
 
-# Depend on system installation of Gazebo
+if(${catkin_FOUND})
+    set(ROS_VERSION "ros")
+    catkin_package(INCLUDE_DIRS include LIBRARIES wolf_hw_sim)
+    add_definitions(-DROS)
+    message(STATUS "Add ROS definition")
+elseif(${ament_cmake_FOUND})
+    set(ROS_VERSION "ros2")
+    ament_export_include_directories(include)
+    ament_export_libraries(wolf_hw_sim)
+    ament_package()
+    add_definitions(-DROS2)
+    message(STATUS "Add ROS2 definition")
+endif()
+
+find_package(gazebo_ros REQUIRED)
+find_package(hardware_interface REQUIRED)
+find_package(controller_manager REQUIRED)
+find_package(wolf_hardware_interface REQUIRED)
+find_package(wolf_controller_utils REQUIRED)
+find_package(transmission_interface REQUIRED)
+find_package(pluginlib REQUIRED)
+find_package(gazebo_${ROS_VERSION}_control REQUIRED)
+find_package(realtime_tools REQUIRED)
 find_package(gazebo REQUIRED)
 
-catkin_package(
-  LIBRARIES wolf_hw_sim
-  CATKIN_DEPENDS wolf_hardware_interface
-  INCLUDE_DIRS include)
-
 link_directories(${GAZEBO_LIBRARY_DIRS})
-include_directories(include
-  ${catkin_INCLUDE_DIRS}
+include_directories(
+  include/${ROS_VERSION}
+  ${gazebo_ros_INCLUDE_DIRS}
+  ${hardware_interface_INCLUDE_DIRS}
+  ${controller_manager_INCLUDE_DIRS}
+  ${wolf_hardware_interface_INCLUDE_DIRS}
+  ${wolf_controller_utils_INCLUDE_DIRS}
+  ${transmission_interface_INCLUDE_DIRS}
+  ${gazebo_${ROS_VERSION}_control_INCLUDE_DIRS}
+  ${realtime_tools_INCLUDE_DIRS}
   ${GAZEBO_INCLUDE_DIRS})
 
 ## Libraries
-add_library(wolf_hw_sim src/wolf_hw_sim.cpp)
-target_link_libraries(wolf_hw_sim ${catkin_LIBRARIES}
-                                 ${GAZEBO_LIBRARIES}
-                      )
+add_library(wolf_hw_sim src/${ROS_VERSION}/wolf_hw_sim.cpp)
+target_link_libraries(wolf_hw_sim
+    ${gazebo_ros_LIBRARIES}
+    ${hardware_interface_LIBRARIES}
+    ${controller_manager_LIBRARIES}
+    ${wolf_hardware_interface_LIBRARIES}
+    ${wolf_controller_utils_LIBRARIES}
+    ${transmission_interface_LIBRARIES}
+    ${gazebo_${ROS_VERSION}_control_LIBRARIES}
+    ${realtime_tools_LIBRARIES}
+    ${GAZEBO_LIBRARIES}
+)
 
-install(DIRECTORY include/${PROJECT_NAME}/
-        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+install(
+  DIRECTORY include/${ROS_VERSION}/${PROJECT_NAME}
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+)
 
 install(TARGETS wolf_hw_sim
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+)
 
 install(FILES wolf_hw_sim_plugins.xml
-DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
+
 
