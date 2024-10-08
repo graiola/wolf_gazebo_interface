@@ -7,13 +7,15 @@ namespace wolf_gazebo_interface
 using namespace hardware_interface;
 
 bool WolfRobotHwSim::initSim(
-    rclcpp::Node::SharedPtr & model_nh,
+    rclcpp::Node::SharedPtr& model_nh,
     gazebo::physics::ModelPtr parent_model,
     const hardware_interface::HardwareInfo & hardware_info,
     sdf::ElementPtr sdf)
 {
 
   nh_ = model_nh;
+
+  RCLCPP_INFO_STREAM(nh_->get_logger(),"InitSim");
 
   const auto& sensor_manager  = gazebo::sensors::SensorManager::Instance();
   sim_model_ = parent_model;
@@ -42,7 +44,7 @@ bool WolfRobotHwSim::initSim(
     sim_joints_.push_back(joint);
     // Set limits
     //joint_effort_limits_[j] = joint->GetEffortLimit(0);
-    // joint->SetEffortLimit(0,joint_effort_limits_[j]);
+    //joint->SetEffortLimit(0,joint_effort_limits_[j]);
   }
 
   // Hardware interfaces: IMU sensor

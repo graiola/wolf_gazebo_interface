@@ -21,6 +21,7 @@ endif()
 # ROS
 find_package(catkin QUIET)
 find_package(ament_cmake QUIET)
+find_package(pluginlib REQUIRED)
 
 if(${catkin_FOUND})
     set(ROS_VERSION "ros")
@@ -29,6 +30,7 @@ if(${catkin_FOUND})
     message(STATUS "Add ROS definition")
 elseif(${ament_cmake_FOUND})
     set(ROS_VERSION "ros2")
+    pluginlib_export_plugin_description_file(hardware_interface wolf_hw_sim_plugins.xml)
     ament_export_include_directories(include)
     ament_export_libraries(wolf_hw_sim)
     ament_package()
@@ -42,7 +44,6 @@ find_package(controller_manager REQUIRED)
 find_package(wolf_hardware_interface REQUIRED)
 find_package(wolf_controller_utils REQUIRED)
 find_package(transmission_interface REQUIRED)
-find_package(pluginlib REQUIRED)
 find_package(gazebo_${ROS_VERSION}_control REQUIRED)
 find_package(realtime_tools REQUIRED)
 find_package(gazebo REQUIRED)
@@ -72,17 +73,18 @@ target_link_libraries(wolf_hw_sim
     ${gazebo_${ROS_VERSION}_control_LIBRARIES}
     ${realtime_tools_LIBRARIES}
     ${GAZEBO_LIBRARIES}
+    ${pluginlib_LIBRARIES}
 )
+target_compile_definitions(wolf_hw_sim PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+
 
 install(
   DIRECTORY include/${ROS_VERSION}/${PROJECT_NAME}
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include
 )
-
 install(TARGETS wolf_hw_sim
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+    DESTINATION lib/${PROJECT_NAME}
+    LIBRARY DESTINATION lib
 )
 
 install(FILES wolf_hw_sim_plugins.xml
