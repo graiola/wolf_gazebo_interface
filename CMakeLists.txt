@@ -25,7 +25,7 @@ find_package(pluginlib REQUIRED)
 
 if(${catkin_FOUND})
     set(ROS_VERSION "ros")
-    catkin_package(INCLUDE_DIRS include LIBRARIES wolf_hw_sim)
+    catkin_package(INCLUDE_DIRS include LIBRARIES wolf_hw_sim CATKIN_DEPENDS wolf_hardware_interface)
     add_definitions(-DROS)
     message(STATUS "Add ROS definition")
 elseif(${ament_cmake_FOUND})
