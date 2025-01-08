@@ -47,6 +47,7 @@ find_package(transmission_interface REQUIRED)
 find_package(gazebo_${ROS_VERSION}_control REQUIRED)
 find_package(realtime_tools REQUIRED)
 find_package(gazebo REQUIRED)
+find_package(std_srvs REQUIRED)
 
 link_directories(${GAZEBO_LIBRARY_DIRS})
 include_directories(
@@ -59,7 +60,8 @@ include_directories(
   ${transmission_interface_INCLUDE_DIRS}
   ${gazebo_${ROS_VERSION}_control_INCLUDE_DIRS}
   ${realtime_tools_INCLUDE_DIRS}
-  ${GAZEBO_INCLUDE_DIRS})
+  ${GAZEBO_INCLUDE_DIRS}
+  ${std_srvs_INCLUDE_DIRS})
 
 ## Libraries
 add_library(wolf_hw_sim src/${ROS_VERSION}/wolf_hw_sim.cpp)

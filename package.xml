@@ -22,6 +22,7 @@
   <depend>wolf_hardware_interface</depend>
   <depend>wolf_controller_utils</depend>
   <depend>realtime_tools</depend>
+  <depend>std_srvs</depend>
 
   <export>
     <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
