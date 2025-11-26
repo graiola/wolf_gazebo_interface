@@ -42,6 +42,7 @@ namespace wolf_gazebo_interface
 
     // Hardware interfaces: Joints
     std::vector<std::string> joint_names(transmissions.size());
+    std::vector<std::string> joint_interfaces(transmissions.size());
     // Initialize values from the transmission interface i.e. by using actuated joints (no floating base).
     for (unsigned int j=0; j < transmissions.size(); j++)
     {
@@ -74,11 +75,14 @@ namespace wolf_gazebo_interface
         continue;
       }
       joint_names[j] = transmissions[j].joints_[0].name_;
+      joint_interfaces[j] = transmissions[j].joints_[0].hardware_interfaces_.front();
+      ROS_INFO_STREAM_NAMED(CLASS_NAME,"Parsing joint "<< joint_names[j] << " with interface " << joint_interfaces[j]);
     }
     WolfRobotHwInterface::parseSRDF(model_nh.getNamespace());
-    WolfRobotHwInterface::initializeJointsInterface(joint_names);
+    WolfRobotHwInterface::initializeJointsInterface(joint_names,joint_interfaces);
     registerInterface(&joint_state_interface_);
     registerInterface(&joint_effort_interface_);
+    registerInterface(&joint_velocity_interface_);
     for(unsigned int j=0;j<n_dof_;j++)
     {
       gazebo::physics::JointPtr joint = parent_model->GetJoint(joint_names_[j]);
@@ -293,7 +297,12 @@ namespace wolf_gazebo_interface
     }
 
     for (unsigned int j=0; j < n_dof_; j++)
-      sim_joints_[j]->SetForce(0, joint_effort_command_[j]);
+    {
+      if(joint_control_methods_[j] == EFFORT)
+        sim_joints_[j]->SetForce(0, joint_effort_command_[j]);
+      else if(joint_control_methods_[j] == VELOCITY)
+        sim_joints_[j]->SetVelocity(0, joint_velocity_command_[j]);
+    }
   }
 
 } // namespace
