@@ -25,12 +25,12 @@ bool WolfRobotHwSim::initSim(
   // Hardware interfaces: Joints
   std::vector<std::string> joint_names(hardware_info.joints.size());
   for (unsigned int j=0; j < joint_names.size(); j++)
-    joint_names_[j] = hardware_info.joints[j].name;
+    joint_names[j] = hardware_info.joints[j].name;
 
   WolfRobotHwInterface::parseSRDF(robot_name_);
 
   // register the state handles
-  WolfRobotHwInterface::initializeJointsInterface(joint_names_);
+  WolfRobotHwInterface::initializeJointsInterface(joint_names);
 
   for(unsigned int j=0;j<n_dof_;j++)
   {
